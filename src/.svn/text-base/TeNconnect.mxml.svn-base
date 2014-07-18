@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:WindowedApplication xmlns:fx="http://ns.adobe.com/mxml/2009" 
+					   xmlns:s="library://ns.adobe.com/flex/spark" 
+					   xmlns:mx="library://ns.adobe.com/flex/mx"
+					   xmlns:components="org.ten.components.*"
+					   xmlns:apps="org.ten.components.apps.*"
+					   width="1920" height="1080" showStatusBar="false"
+					   applicationComplete="finish()" 
+					   frameRate="60">
+	
+	<fx:Script>
+		<![CDATA[
+			import mx.binding.utils.ChangeWatcher;
+			import mx.controls.Alert;
+			import mx.events.CloseEvent;
+			import mx.managers.PopUpManager;
+			import mx.rpc.events.FaultEvent;
+			import mx.rpc.events.ResultEvent;
+			
+			import org.ten.DataShop;
+			import org.ten.vo.McConnelEngineeringBuilding;
+			import org.ten.vo.Student;
+			
+			[Bindable]
+			/**
+			 * The app's data shop.
+			 */
+			private var dataShop:DataShop = DataShop.instance;
+			
+			/**
+			 * The running creation of an HID ID number as it is being
+			 * entered by the card reader.
+			 */
+			private var hidId:String = "";
+			
+			/**
+			 * The Alert box that is asking the user about his or her session time.
+			 */
+			private var sessionAlert:Alert;
+			
+			/**
+			 * Handles the application completing its loading process.
+			 * Puts the application full screen and prepares all components.
+			 */
+			private function finish():void {
+				// find the monitor to display on
+				// external monitor first, then primary monitor
+				if(Screen.screens.length > 1) {
+					this.nativeWindow.x = Screen.screens[1].bounds.x;
+					this.nativeWindow.y = Screen.screens[1].bounds.y;
+				}
+				
+				// let's go full screen
+				stage.displayState = StageDisplayState.FULL_SCREEN_INTERACTIVE;
+//				this.scaleX = this.scaleY = 0.75;
+				
+				// do the initial data fetch
+				dataShop.slideService.getSlides();
+				dataShop.eventService.getEvents();
+				dataShop.directoryService.getDirectory();
+				dataShop.courseService.getCourses();
+				
+				// listen for a set student to come back
+				dataShop.studentService.setInfo.addEventListener(ResultEvent.RESULT, processLoginAttempt);
+				
+				// listen for key presses on the stage
+				stage.addEventListener(KeyboardEvent.KEY_UP, listenForCardReader);
+				
+				// listen for inactivity
+				//NativeApplication.nativeApplication.idleThreshold = 240;
+				//NativeApplication.nativeApplication.addEventListener(Event.USER_IDLE, checkForUser);
+			}
+			
+			/**
+			 * Brings the user to the home screen by making the 
+			 * home 'app' the current app.
+			 */
+			public function goHome():void {
+				apps.selectedChild = homeApp;
+			}
+			
+			/**
+			 * Brings the user to the app they selected.
+			 */
+			public function goToApp(appName:String):void {
+				try {
+					apps.selectedChild = this[appName];
+				} catch(e:Error) {
+					trace("Invalid app selected...");
+				}
+			}
+			
+			/**
+			 * Handles the result of an attempted login.
+			 * Checks to see if it was good or bad.
+			 */
+			private function processLoginAttempt(event:ResultEvent):void {
+				if(!event.result) {
+					trace("The ID card was not recognized...");
+				} else {
+					// record the current student
+					dataShop.loggedInStudent = event.result as Student;
+					
+					// get info relative to the student
+					dataShop.courseService.getMyCourses();
+					
+					// log that the user connected
+					dataShop.logService.log("logged in via ID card", dataShop.loggedInStudent.studentId);
+				}
+			}
+			
+			/**
+			 * Listens for a key to be entered.
+			 * Specifically, it is listening for a card reader value to be entered.
+			 */
+			private function listenForCardReader(event:KeyboardEvent):void {
+				// get the character entered by the card reader
+				var char:String = String.fromCharCode(event.charCode);
+				
+				// if the key is a return key, dispatch an event to get the user's information
+				if(char == String.fromCharCode(13)) {
+					trace("Should get information for ]]" + hidId + "[[");
+					dataShop.studentService.setInfo(hidId);
+				} else {
+					// empty the current value if it is already "full"
+					if(hidId.length == 8) {
+						hidId = "";
+					}
+					
+					// build up the ID from the incoming input
+					hidId += char;
+				}
+			}
+			
+			/**
+			 * Handles a user becoming idle.
+			 */
+			private function checkForUser(event:Event):void {
+				if(dataShop.loggedInStudent) {
+					// show an alert to ask
+					sessionAlert = Alert.show("Still there?  If you are not the user seen in the ID card, click no to start your own session! (No will be selected in 30 seconds...)", 
+						"", Alert.YES | Alert.NO, null, idleCloseHandler);
+					
+					// wait 30 seconds and log out anyway
+					var timer:Timer = new Timer(30000, 1);
+					timer.addEventListener(TimerEvent.TIMER_COMPLETE, function(event:Event):void { 
+						dataShop.logout();
+						PopUpManager.removePopUp(sessionAlert);
+					});
+					timer.start();
+				}
+			}
+			
+			/**
+			 * Handles the close of the alert box.
+			 */
+			private function idleCloseHandler(event:CloseEvent):void {
+				if(event.detail == Alert.NO) {
+					// the user is gone... log them out
+					dataShop.logout();
+				}
+			}
+		]]>
+	</fx:Script>
+	
+	<fx:Style source="assets/styles/ten.css" />
+	
+	<fx:Declarations>
+		<s:Parallel id="slideOut" duration="800">
+			<s:Fade alphaFrom="1.0" alphaTo="0.0" />
+			<s:Move xFrom="0" xBy="-1570" />
+		</s:Parallel>
+		
+		<s:Parallel id="slideIn" duration="800">
+			<s:Fade alphaFrom="0.0" alphaTo="1.0" />
+			<s:Move xFrom="-1570" xBy="1570" />
+		</s:Parallel>
+		
+		<s:Fade id="fadeIn" duration="400" alphaFrom="0.0" alphaTo="1.0" />
+		<s:Fade id="fadeOut" duration="400" alphaFrom="1.0" alphaTo="0.0" />
+		
+		<s:Parallel id="rotateOut" duration="400">
+			<s:Fade alphaFrom="1.0" alphaTo="0.0" />
+			<s:Rotate3D angleYFrom="0" angleYTo="90" />
+		</s:Parallel>
+		
+		<s:Parallel id="rotateIn" duration="400">
+			<s:Fade alphaFrom="0.0" alphaTo="1.0" />
+			<s:Rotate3D angleYFrom="90" angleYTo="0" />
+		</s:Parallel>
+	</fx:Declarations>
+	
+	<mx:ViewStack id="apps" width="1570" height="1080" creationPolicy="all" clipContent="false" resizeToContent="true">
+		<apps:HomeApp id="homeApp" goToFunction="{goToApp}" showEffect="{rotateIn}" hideEffect="{rotateOut}" />
+		<apps:SlidesApp id="slidesApp" homeFunction="{goHome}" showEffect="{fadeIn}" hideEffect="{fadeOut}" />
+		<apps:MapsApp id="mapsApp" homeFunction="{goHome}" showEffect="{fadeIn}" hideEffect="{fadeOut}" />
+		<apps:EventsApp id="eventsApp" homeFunction="{goHome}" showEffect="{fadeIn}" hideEffect="{fadeOut}" />
+		<apps:DirectoryApp id="directoryApp" homeFunction="{goHome}" showEffect="{fadeIn}" hideEffect="{fadeOut}" />
+		<apps:ScheduleApp id="scheduleApp" homeFunction="{goHome}" showEffect="{fadeIn}" hideEffect="{fadeOut}" />
+		<apps:LibraryApp id="libraryApp" homeFunction="{goHome}" showEffect="{fadeIn}" hideEffect="{fadeOut}" />
+		<apps:STMApp id="stmApp" homeFunction="{goHome}" showEffect="{fadeIn}" hideEffect="{fadeOut}" />
+	</mx:ViewStack>
+	
+	<components:Weather x="{this.width - weather.width}" id="weather" />
+	
+</s:WindowedApplication>

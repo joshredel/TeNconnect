@@ -1,0 +1,88 @@
+/* CSS file */
+@namespace s "library://ns.adobe.com/flex/spark";
+@namespace mx "library://ns.adobe.com/flex/mx";
+@namespace comp "org.ten.components.*";
+
+@font-face {
+	src: url("assets/fonts/SegoeWP.ttf");
+	fontFamily: segoeRegular;
+}
+
+@font-face {
+	src: url("assets/fonts/SegoeWP-SemiBold.ttf");
+	fontFamily: segoeRegular;
+	fontWeight: bold;
+}
+
+@font-face {
+	src: url("assets/fonts/SegoeWP-SemiBold.ttf");
+	fontFamily: segoeSemiBold;
+}
+
+@font-face {
+	src: url("assets/fonts/SegoeWP-Light.ttf");
+	fontFamily: segoeLight;
+}
+
+@font-face {
+	src: url("assets/fonts/SegoeWP.ttf");
+	fontFamily: segoeRegularMX;
+	embedAsCFF: false;
+}
+
+s|WindowedApplication {
+	color: #FFFFFF;
+	fontFamily: segoeRegular;
+	backgroundColor: #111111;
+}
+
+s|Button {
+	fontSize: 24;
+}
+
+s|Label {
+	fontSize: 24;
+}
+
+s|List {
+	contentBackgroundColor: #111111;
+	borderColor: #111111;
+	borderVisible: false;
+}
+
+mx|Accordion {
+	fontFamily: segoeRegularMX;
+}
+
+.idText {
+	color: #000000;
+	fontSize: 15;
+}
+
+mx|Alert {
+	titleStyleName: "alertTitle";
+	messageStyleName: "alertMessage";
+	buttonStyleName: "alertButton";
+	fontFamily: segoeRegularMX;
+	fontSize: 20;
+	fontWeight: bold;
+	borderSkin: ClassReference("org.ten.skins.AlertSkin");
+}
+
+.alertTitle {
+	height: 0;
+}
+
+.alertMessage {
+	color: black;
+	padding: 0;
+}
+
+.alertButton {
+	letterSpacing: 0;
+	fontSize: 14;
+	cornerRadius: 10;
+	fontWeight: bold;
+	textRollOverColor: black;
+	color: black;
+}

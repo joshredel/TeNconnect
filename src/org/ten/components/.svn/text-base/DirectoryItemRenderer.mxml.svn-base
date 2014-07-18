@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:ItemRenderer xmlns:fx="http://ns.adobe.com/mxml/2009" 
+				xmlns:s="library://ns.adobe.com/flex/spark" 
+				xmlns:mx="library://ns.adobe.com/flex/mx" 
+				autoDrawBackground="true" width="1350" height="150">
+	
+	<fx:Script>
+		<![CDATA[
+			import mx.binding.utils.ChangeWatcher;
+			import mx.collections.ArrayCollection;
+			import mx.core.DragSource;
+			import mx.managers.DragManager;
+			
+			import org.ten.DataShop;
+			
+			import spark.components.supportClasses.ListBase;
+			
+			[Bindable]
+			/**
+			 * The app's data shop.
+			 */
+			private var dataShop:DataShop = DataShop.instance;
+			
+			[Embed(source='assets/images/mail.png')]
+			/**
+			 * The image we use to represent dragging a slide to be mailed.
+			 */
+			public var mailIcon:Class;
+			
+			/**
+			 * Overrides the display list update function and changes the state of the 
+			 * renderer depending on the selection status (shrunken if not selected, enlarged 
+			 * if selected).
+			 */
+			override protected function updateDisplayList(unscaledWidth:Number, unscaledHeight:Number):void {
+				super.updateDisplayList(unscaledWidth, unscaledHeight);
+				
+				//figure out if this itemRenderer is selected
+				//if(ListBase(owner).isItemSelected(data)) {
+				if(ListBase(owner).selectedItem == data) {
+					// we're selected, so enlarge the view
+					this.height = 450;
+					this.currentState = "expanded";
+				} else {
+					// we're not currently selected, so shrink the view
+					this.height = 150;
+					this.currentState = "shrunk";
+				}
+				
+				// draw the bottom line and background box
+//				with(graphics) {
+//					// prepare
+//					clear();
+//					
+//					// draw box
+//					lineStyle(0, 0xCCCCCC, 0.0);
+//					beginFill(0xCCCCCC, 0.0);
+//					drawRect(0, 0, this.width, this.height);
+//				}
+			}
+			
+			/**
+			 * Starts the drag and drop action on this object
+			 */
+			private function doDrag(event:MouseEvent):void {
+				// get the slide image that we started to drag from
+				var targetImage:Image = event.currentTarget as Image;	
+				
+				// create a drag indicator image
+				var dragImage:Image = new Image();
+				dragImage.source = mailIcon;
+				dragImage.width = 150;
+				dragImage.smoothBitmapContent = true;
+				
+				// create a drag source to hold the data being sent
+				var dragSource:DragSource = new DragSource();
+				dragSource.addData(data, 'data');
+				
+				// start the drag
+				DragManager.doDrag(targetImage, dragSource, event, dragImage, event.localX - 75, event.localY - 75, 1);
+			}
+		]]>
+	</fx:Script>
+	
+	<fx:Declarations>
+		<s:State name="shrunk" />
+		<s:State name="expanded" />
+	</fx:Declarations>
+	
+	<s:layout>
+		<s:HorizontalLayout gap="40" verticalAlign="top" paddingRight="15" />
+	</s:layout>
+	
+	<mx:Image width="150" height.shrunk="150" height.expanded="450" smoothBitmapContent="true" 
+			  source="{this.currentState == 'shrunk' ? data.thumbnailUrl : data.imageUrl}"
+			  mouseDown="doDrag(event)"/>
+	
+	<s:VGroup width="100%" height="100%">
+		<s:Label text="{data.name}" fontSize="40" />
+		
+		<s:Label text="{data.description}" fontSize="30" fontFamily="segoeLight" width="100%" 
+				 maxDisplayedLines.shrunk="1" maxDisplayedLines.expanded="8" />
+		
+		<mx:Spacer height="100%" />
+		
+		<s:HGroup width="100%" verticalAlign="top" includeIn="expanded">
+			<s:VGroup>
+				<s:Label text="{data.email}" fontSize="30" fontFamily="segoeLight" />
+				<s:Label text="{data.phone}" fontSize="30" fontFamily="segoeLight" />
+			</s:VGroup>
+			
+			<s:Spacer width="100%" />
+			
+			<s:VGroup horizontalAlign="right">
+				<s:Label text="{data.address1}" fontSize="30" fontFamily="segoeLight"  />
+				<s:Label text="{data.address2}" fontSize="30" fontFamily="segoeLight" />
+				<s:Label text="{data.city}, {data.province}    {data.postalCode}" fontSize="30" fontFamily="segoeLight" />
+			</s:VGroup>
+		</s:HGroup>
+	</s:VGroup>
+	
+</s:ItemRenderer>

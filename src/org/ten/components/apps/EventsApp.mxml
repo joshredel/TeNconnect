@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:NavigatorContent xmlns:fx="http://ns.adobe.com/mxml/2009" 
+					xmlns:s="library://ns.adobe.com/flex/spark" 
+					xmlns:mx="library://ns.adobe.com/flex/mx"
+					xmlns:components="org.ten.components.*"
+					width="1570" height="1080" creationComplete="finish()">
+	
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import mx.binding.utils.ChangeWatcher;
+			import mx.collections.ArrayCollection;
+			import mx.core.DragSource;
+			import mx.managers.DragManager;
+			import mx.rpc.events.ResultEvent;
+			
+			import org.ten.DataShop;
+			import org.ten.components.EventItemRenderer;
+			import org.ten.vo.TEvent;
+			
+			[Bindable]
+			/**
+			 * The app's data shop.
+			 */
+			private var dataShop:DataShop = DataShop.instance;
+			
+			/**
+			 * The function to be called to bring the user back home.
+			 */
+			public var homeFunction:Function;
+			
+			[Bindable]
+			/**
+			 * A collection of events to display.
+			 */
+			private var events:ArrayCollection;
+			
+			[Bindable]
+			/**
+			 * A collection of hosts that we can filter by.
+			 */
+			private var hosts:ArrayCollection;
+			
+			/**
+			 * Handles the completion of the component loading.
+			 * Listens for changes to the events collection.
+			 */
+			private function finish():void {
+				dataShop.eventService.getEvents.addEventListener(ResultEvent.RESULT, handleNewEvents);
+			}
+			
+			/**
+			 * Handles a change to the events.
+			 * Creates filters for the data.
+			 */
+			private function handleNewEvents(event:Event):void {
+				// get the events from the database call
+				var events:ArrayCollection = new ArrayCollection(dataShop.eventService.getEvents.lastResult);
+				
+				// store the events
+				this.events = events;
+				
+				// create a collection containing all of the possible event filters (by host)
+				hosts = new ArrayCollection();
+				hosts.addItem("All");
+				for each(var tevent:TEvent in events) {
+					// see if the collection already contains the host
+					var hostName:String = tevent.host;
+					if(!hosts.contains(hostName)) {
+						// it doesn't, so add it
+						hosts.addItem(hostName);
+					}
+				}
+				hostsList.selectedItem = "All";
+				
+				if(events) {
+					// assign a filter function
+					events.filterFunction = hostFilterFunction;
+					
+					// refresh the data so that the filter function takes effect
+					events.refresh();
+				}
+			}
+			
+			/**
+			 * The filter for the events list.
+			 * Returns true if the passed events piece falls within a genre.
+			 * Returns false otherwise.
+			 */
+			private function hostFilterFunction(data:TEvent):Boolean {
+				var willFilter:Boolean = false;
+				if(hostsList.selectedItem == "All" || data.host == hostsList.selectedItem) {
+					willFilter = true;
+				}
+				
+				return willFilter;
+			}
+			
+			/**
+			 * Calls the function that brings the user home.
+			 */
+			private function goHome():void {
+				try {
+					homeFunction();
+				} catch(e:Error) {
+					trace("No home function defined...");
+				}
+			}
+		]]>
+	</fx:Script>
+	
+	<s:layout>
+		<s:VerticalLayout gap="15" verticalAlign="top" horizontalAlign="left" 
+						  paddingLeft="100" paddingTop="20" paddingRight="100" paddingBottom="100" />
+	</s:layout>
+	
+	<s:Label text="Events" fontSize="76" />
+	
+	<s:List id="hostsList" width="100%" dataProvider="{hosts}" itemRenderer="org.ten.components.FilterItemRenderer" 
+			selectionColor="0x111111" change="events.refresh()">
+		<s:layout>
+			<s:HorizontalLayout gap="70" />
+		</s:layout>
+	</s:List>
+	
+	<mx:Spacer height="15" />
+	
+	<s:List id="eventsList" width="100%" height="100%" dataProvider="{events}" 
+			itemRenderer="org.ten.components.EventItemRenderer" selectionColor="0x222222" interactionMode="touch">
+		<s:layout>
+			<s:VerticalLayout gap="30" />
+		</s:layout>
+	</s:List>
+	
+	<components:HomeButton click="goHome()" />
+</s:NavigatorContent>

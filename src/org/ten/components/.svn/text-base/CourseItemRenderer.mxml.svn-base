@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:ItemRenderer xmlns:fx="http://ns.adobe.com/mxml/2009" 
+				xmlns:s="library://ns.adobe.com/flex/spark" 
+				xmlns:mx="library://ns.adobe.com/flex/mx" 
+				autoDrawBackground="true" width="100%" height="120">
+	
+	<s:layout>
+		<s:HorizontalLayout gap="40" />
+	</s:layout>
+	
+	<s:Rect width="120" height="120">
+		<s:fill>
+			<s:SolidColor color="0x1FB4EC" />
+		</s:fill>
+	</s:Rect>
+	
+	<s:VGroup width="100%">
+		<s:Label text="{data.department} {data.courseNumber} - {data.courseName} ({data.courseType})" fontSize="30" />
+		
+		<s:Label text="{data.instructorName}" />
+		
+		<s:Label text="{data.time}, {data.days}" />
+		
+		<s:Label text="{data.room}" />	
+	</s:VGroup>
+	
+</s:ItemRenderer>

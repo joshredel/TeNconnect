@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:NavigatorContent xmlns:fx="http://ns.adobe.com/mxml/2009" 
+					xmlns:s="library://ns.adobe.com/flex/spark" 
+					xmlns:mx="library://ns.adobe.com/flex/mx" 
+					width="1570" height="1080" xmlns:components="org.ten.components.*">
+	
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import mx.collections.ArrayCollection;
+			import mx.core.DragSource;
+			import mx.managers.DragManager;
+			
+			import org.ten.DataShop;
+			
+			[Bindable]
+			/**
+			 * The app's data shop.
+			 */
+			private var dataShop:DataShop = DataShop.instance;
+			
+			/**
+			 * The function to call when we select an app.
+			 */
+			public var goToFunction:Function;
+			
+			/**
+			 * Go to the app that was clicked on.
+			 */
+			private function goToApp(appName:String):void {
+				try {
+					goToFunction(appName);
+				} catch(e:Error) {
+					trace("Go to function not defined...");
+				}
+			}
+		]]>
+	</fx:Script>
+	
+	<s:layout>
+		<s:VerticalLayout gap="60" verticalAlign="top" horizontalAlign="left" 
+						  paddingLeft="100" paddingTop="80" paddingRight="100" />
+	</s:layout>
+	
+	<s:Label text="What would you like to do?" fontSize="76" />
+	
+	<s:TileGroup width="100%" height="100%" verticalGap="60" horizontalGap="60">
+		<components:AppButton appName="TeN slides" click="goToApp('slidesApp')"
+							  appDescription="View slides currently on display on the TeN screens." />
+		
+		<components:AppButton appName="Maps" click="goToApp('mapsApp')"
+							  appDescription="View and interact with campus and building maps." />
+		
+		<components:AppButton appName="Events" click="goToApp('eventsApp')"
+							  appDescription="Learn about events being hosted on campus." />
+		
+		<components:AppButton appName="Directory" click="goToApp('directoryApp')"
+							  appDescription="Check out all the offices, labs, and services available in the building." />
+		
+		<components:AppButton appName="Class Schedule" click="goToApp('scheduleApp')"
+							  appDescription="View your class schedule and find your classes on a map." />
+		
+		<components:AppButton appName="Library Information" click="goToApp('libraryApp')"
+							  appDescription="Get information about the hours your favourite library is open." />
+		
+		<components:AppButton appName="STM Schedules" click="goToApp('stmApp')"
+							  appDescription="Check STM bus times." />
+	</s:TileGroup>
+</s:NavigatorContent>

@@ -1,0 +1,235 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" 
+		 width="350" height="1080" clipAndEnableScrolling="true"
+		 creationComplete="finish()">
+	
+	<fx:Declarations>
+		
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import com.yahoo.webapis.weather.CurrentConditions;
+			import com.yahoo.webapis.weather.ForecastConditions;
+			import com.yahoo.webapis.weather.WeatherService;
+			import com.yahoo.webapis.weather.events.WeatherResultEvent;
+			
+			import mx.events.DragEvent;
+			import mx.formatters.DateFormatter;
+			import mx.managers.DragManager;
+			
+			import org.ten.DataShop;
+			import org.ten.vo.*;
+			
+			[Bindable]
+			/**
+			 * The app's data shop.
+			 */
+			private var dataShop:DataShop = DataShop.instance;
+			
+			/**
+			 * @private
+			 * The weather service used to request weather.
+			 */
+			private var weatherService:WeatherService = new WeatherService();
+			
+			[Bindable]
+			/**
+			 * Holds the current condition's code (for image fetching)
+			 */
+			private var conditionCode:Number;
+			
+			[Bindable]
+			/**
+			 * Holds the later condition's code (for image fetching)
+			 */
+			private var latersConditionCode:Number;
+			
+			[Bindable]
+			/**
+			 * Holds tomorrow's condition's code (for image fetching)
+			 */
+			private var tomorrowsConditionCode:Number;
+			
+			/**
+			 * Prepares a timer to move the background images with the 
+			 * progression of time and to prepare a timer to manage the 
+			 * time in the clock and prepares the weather service.
+			 */
+			private function finish():void {
+				// prepare and start the clock timer
+				var clockTimer:Timer = new Timer(1000);
+				clockTimer.addEventListener(TimerEvent.TIMER, refreshTime);
+				clockTimer.start();
+				
+				// initialize the weather service and listen for responses
+				weatherService = new WeatherService();
+				weatherService.addEventListener(WeatherResultEvent.WEATHER_LOADED, handleWeatherResult);
+				refreshWeather();
+				
+				// prepare and start a timer to refresh the weather
+				var weatherTimer:Timer = new Timer(600000);
+				weatherTimer.addEventListener(TimerEvent.TIMER, refreshWeather);
+				weatherTimer.start();
+			}
+			
+			/**
+			 * Refreshed the time and date.
+			 */
+			private function refreshTime(event:TimerEvent):void {
+				// a formatter for each of the date and time
+				var formatter:DateFormatter = new DateFormatter();
+				
+				// format the date
+				formatter.formatString = "EEEE, D MMMM";
+				dateLabel.text = formatter.format(new Date());
+				
+				// format the time
+				formatter.formatString = "JJ:NN";
+				timeLabel.text = formatter.format(new Date());
+			}
+			
+			/**
+			 * Gets the weather from Environment Canada's feed.
+			 */
+			private function refreshWeather(event:TimerEvent = null):void {
+				// request the weather
+				weatherService.getWeather("CAXX0301", "c");
+			}
+			
+			/**
+			 * Handles the result of the weather fetch by showing 
+			 * the current weather.
+			 */
+			private function handleWeatherResult(event:WeatherResultEvent):void {
+				// get the current conditions and store the information
+				var conditions:CurrentConditions = weatherService.weather.current;
+				temperatureLabel.text = conditions.temperature + "˚";
+				conditionCode = conditions.code;
+				
+				// get the forecast
+				var forecast:ForecastConditions = weatherService.weather.forecast[0];
+				
+				// display today's high and low
+				todaysHighLabel.text = forecast.high + "˚";
+				todaysLowLabel.text = forecast.low + "˚";
+				
+				// display later today (aka "tonight")
+				latersConditionCode = forecast.code;
+				
+				// move to tomorrow and display the information
+				forecast = weatherService.weather.forecast[1];
+				tomorrowsConditionCode = forecast.code;
+				tomorrowsHighLabel.text = forecast.high + "˚";
+				tomorrowsLowLabel.text = forecast.low + "˚";
+			}
+			
+			/**
+			 * Drag-And-Drop:
+			 * Adds the container to the list of acceptable drop areas.
+			 */
+			private function dragAccept(event:DragEvent):void {
+				var dropTarget:Group = event.currentTarget as Group;
+				DragManager.acceptDragDrop(dropTarget);
+			}
+			
+			/**
+			 * Drag-And-Drop:
+			 * Handle the item once it is dropped into the acceptable area
+			 * */
+			private function dragDrop(event:DragEvent):void {	
+				// get the drag data
+				var draggedSource:* = event.dragSource.dataForFormat('data');
+				
+				var message:String
+				if(draggedSource is Slide) {
+					var user:String = dataShop.loggedInStudent.studentFirstName;
+					
+					message = "Hi " + user +"!\n\nYou've reveived an email from TeNconnect!\n\nHere is the TeN slide you selected: "
+						+ draggedSource.url + "\n\nThank you for using TeNconnect. Please come again soon!";
+					
+					
+					dataShop.emailService.sendEmail(dataShop.loggedInStudent.studentEmail, message);
+				} else if(draggedSource is Image) {
+					message = "Hi " + user +"! \n\nYou've reveived an email from TeNconnect!\n\nHere is the image you selected: "
+						+ draggedSource.source + "\n\nThank you for using TeNconnect. Please come again soon!";
+					
+					
+					dataShop.emailService.sendEmail(dataShop.loggedInStudent.studentEmail, message);
+				} else if(draggedSource is Event) {
+					message = "Hi " + user + "!\n\nYou've reveived an email from TeNconnect!\n\nHere is the event information you selected: "
+						+ draggedSource.title + "\n" + draggedSource.description + "\n\nThank you for using TeNconnect. Please come again soon!";
+					
+					
+					dataShop.emailService.sendEmail(dataShop.loggedInStudent.studentEmail, message);
+				} else if(draggedSource is Directory) {
+					message = "Hi " + user + "!\n\nYou've reveived an email from TeNconnect!\n\nHere is the directory information you selected: "
+						+ draggedSource.name + "\n" + draggedSource.description + "\n\nThank you for using TeNconnect. Please come again soon!";
+					
+					
+					dataShop.emailService.sendEmail(dataShop.loggedInStudent.studentEmail, message);
+				} else {
+					trace("Type casting failed.");
+				}
+			}
+		]]>
+	</fx:Script>
+	
+	<fx:Declarations>
+		<s:Parallel id="fadeIn" duration="800">
+			<s:Fade alphaFrom="0.0" alphaTo="1.0" />
+			<s:Move yFrom="1080" yBy="-210" />
+		</s:Parallel>
+		
+		<s:Parallel id="fadeOut" duration="800">
+			<s:Fade alphaFrom="1.0" alphaTo="0.0" />
+			<s:Move yFrom="870" yBy="210" />
+		</s:Parallel>
+	</fx:Declarations>
+	
+	<!-- Background Box -->
+	<!--<s:Rect width="100%" height="100%">
+		<s:fill>
+			<s:SolidColor color="0x000000" />
+		</s:fill>
+	</s:Rect>-->
+	<mx:Image source="assets/images/weatherBackground.jpg" />
+	
+	<!-- Information -->
+	<!-- Date and Time -->
+	<s:Label id="dateLabel" x="25" y="20" fontFamily="segoeSemiBold" fontSize="26" />
+	<s:Label id="timeLabel" x="25" y="64" fontFamily="segoeLight" fontSize="120" />
+	
+	<!-- Current Weather -->
+	<s:Label text="Currently" x="25" y="204" fontFamily="segoeSemiBold" fontSize="28" />
+	<mx:Image source="assets/images/weather/{conditionCode ? conditionCode : '0'}.png" x="25" y="234" />
+	<s:Label id="temperatureLabel" x="140" y="264" fontFamily="segoeLight" fontSize="74" />
+	
+	<!-- Tonight's Weather -->
+	<s:Label text="Tonight" x="25" y="384" fontFamily="segoeSemiBold" fontSize="28" />
+	<mx:Image source="assets/images/weather/{latersConditionCode ? conditionCode : '0'}.png" x="103" y="414" width="90" smoothBitmapContent="true" />
+	<s:Label id="todaysHighLabel" x="25" y="419" textAlign="right" width="66" fontFamily="segoeRegular" fontSize="39" />
+	<s:Label id="todaysLowLabel" x="25" y="455" textAlign="right" width="66" fontFamily="segoeRegular" fontSize="39" />
+	
+	<!-- Tomorrow's Weather -->
+	<s:Label text="Tomorrow" x="25" y="544" fontFamily="segoeSemiBold" fontSize="28" />
+	<mx:Image source="assets/images/weather/{tomorrowsConditionCode ? conditionCode : '0'}.png" x="103" y="574" width="90" smoothBitmapContent="true" />
+	<s:Label id="tomorrowsHighLabel" x="25" y="579" textAlign="right" width="66" fontFamily="segoeRegular" fontSize="39" />
+	<s:Label id="tomorrowsLowLabel" x="25" y="615" textAlign="right" width="66" fontFamily="segoeRegular" fontSize="39" />
+	
+	<!-- ID Card -->
+	<s:Label text="Swipe your card to view personalized information!" x="10" y="1000" width="330" 
+			 visible="{dataShop.loggedInStudent == null}" />
+	<s:Label text="Tap your card to logout." x="10" y="835" width="330" 
+			 visible="{dataShop.loggedInStudent != null}" />
+	<s:Group x="0" y="870" width="350" showEffect="{fadeIn}" hideEffect="{fadeOut}" 
+			 visible="{dataShop.loggedInStudent != null}" click="dataShop.logout()"
+			 dragEnter="dragAccept(event)" dragDrop="dragDrop(event)">
+		<mx:Image source="assets/images/card.jpg" x="0" y="0" width="350" smoothBitmapContent="true" />
+		<s:Label id="lastName" x="58" y="78" text="{dataShop.loggedInStudent.studentLastName}" styleName="idText" />
+		<s:Label id="firstName" x="58" y="94" text="{dataShop.loggedInStudent.studentFirstName}" styleName="idText" />
+	</s:Group>
+	
+</s:Group>

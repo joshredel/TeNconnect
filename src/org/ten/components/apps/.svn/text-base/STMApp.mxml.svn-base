@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:NavigatorContent xmlns:fx="http://ns.adobe.com/mxml/2009" 
+					xmlns:s="library://ns.adobe.com/flex/spark" 
+					xmlns:components="org.ten.components.*" 
+					xmlns:mx="library://ns.adobe.com/flex/mx" 
+					width="1570" height="1080">
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import mx.collections.ArrayCollection;
+			import mx.controls.Alert;
+			import mx.controls.Label;
+			import mx.core.DragSource;
+			import mx.events.DragEvent;
+			import mx.managers.DragManager;
+			
+			import org.ten.DataShop;
+			import org.ten.components.SlideItemRenderer;
+			import org.ten.vo.Directory;
+			import org.ten.vo.Slide;
+			
+			[Bindable]
+			/**
+			 * The app's data shop.
+			 */
+			private var dataShop:DataShop = DataShop.instance;
+			
+			/**
+			 * The function to be called to bring the user back home.
+			 */
+			public var homeFunction:Function;
+			
+			[Embed(source='assets/images/mail.png')]
+			/**
+			 * The image we use to represent dragging a slide to be mailed.
+			 */
+			public var mailIcon:Class;
+			
+			[Bindable]
+			/**
+			 * A list of buses that are viewable.
+			 */
+			private var busList:ArrayCollection = new ArrayCollection([
+				{label:"144 East (University/des Pins)", data:"52154"},
+				{label:"144 West (University/des Pins)", data:"52153"},
+				{label:"24 East (Sherbrooke/University)", data:"52369"},
+				{label:"24 West (Sherbrooke/University)", data:"52368"}
+			]);
+			
+			/**
+			 * Calls the function that brings the user home.
+			 */
+			private function goHome():void {
+				try {
+					homeFunction();
+				} catch(e:Error) {
+					trace("No home function defined...");
+				}
+			}
+			
+			/**
+			 * Starts the drag and drop action on a Slide object
+			 */
+			private function doDrag(event:MouseEvent):void {
+//				// get the slide image that we started to drag from
+//				var targetImage:Image = event.currentTarget as Image;	
+//				
+//				// create a drag indicator image
+//				var dragImage:Image = new Image();
+//				dragImage.source = mailIcon;
+//				dragImage.width = 150;
+//				dragImage.smoothBitmapContent = true;
+//				
+//				// create a drag source to hold the data being sent
+//				var dragSource:DragSource = new DragSource();
+//				dragSource.addData(slidesList.selectedItem, 'data');
+//				
+//				// start the drag
+//				DragManager.doDrag(targetImage, dragSource, event, dragImage, event.localX - 75, event.localY - 75, 1);
+			}
+			
+			/**
+			 * Load website of the desired bus stop.
+			 */
+			private function loadSTMInformation():void {
+				stmHtml.location = 'http://www2.stm.info/horaires/frmResult.aspx?Arret=' + listOfBuses.selectedItem.data;
+			}
+			
+			/**
+			 * When the STM website has loaded, the HTML is parsed
+			 * and the schedule information is found.
+			 */
+			private function parseSchedule():void {
+				// show the bus information if it is hidden
+				stmHtml.visible = true;
+				
+				// get the html content of the website
+				var htmlContent:Object = stmHtml.htmlLoader.window.document.getElementsByTagName("html")[0];
+				
+				// get the schedule information from isnide the html using a regex
+				var pattern:RegExp = new RegExp("<table id=\"tblHeurePassage\".*?<\/table>.*?<\/div>.*?<div id=\"panNote\">.*?</p>", "is");
+				if(pattern.exec(htmlContent.innerHTML)) {
+					stmHtml.htmlText = pattern.exec(htmlContent.innerHTML);
+				}
+			}
+		]]>
+	</fx:Script>
+	
+	<s:layout>
+		<s:VerticalLayout gap="15" verticalAlign="top" horizontalAlign="left" 
+						  paddingLeft="100" paddingTop="20" paddingRight="100" paddingBottom="100" />
+	</s:layout>
+	
+	<s:Label text="STM Schedules" fontSize="76" />
+	
+	<s:ComboBox id="listOfBuses" width="600" height="60" dataProvider="{busList}" change="loadSTMInformation()" fontSize="24"/>
+	
+	<mx:HTML id="stmHtml" complete="parseSchedule()" visible="false" width="600" height="150"/>
+	
+	<components:HomeButton click="goHome()" />
+</s:NavigatorContent>

@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:NavigatorContent xmlns:fx="http://ns.adobe.com/mxml/2009" 
+					xmlns:s="library://ns.adobe.com/flex/spark" 
+					xmlns:mx="library://ns.adobe.com/flex/mx"
+					xmlns:components="org.ten.components.*"
+					width="1570" height="1080" creationComplete="finish()">
+	
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import mx.binding.utils.ChangeWatcher;
+			import mx.collections.ArrayCollection;
+			import mx.core.DragSource;
+			import mx.managers.DragManager;
+			import mx.rpc.events.ResultEvent;
+			
+			import org.ten.DataShop;
+			import org.ten.components.EventItemRenderer;
+			import org.ten.vo.Directory;
+			import org.ten.vo.TEvent;
+			
+			[Bindable]
+			/**
+			 * The app's data shop.
+			 */
+			private var dataShop:DataShop = DataShop.instance;
+			
+			/**
+			 * The function to be called to bring the user back home.
+			 */
+			public var homeFunction:Function;
+			
+			[Bindable]
+			/**
+			 * A collection of directory items to display.
+			 */
+			private var directories:ArrayCollection;
+			
+			[Bindable]
+			/**
+			 * A collection of categories that we can filter by.
+			 */
+			private var categories:ArrayCollection;
+			
+			/**
+			 * Handles the completion of the component loading.
+			 * Listens for changes to the directories collection.
+			 */
+			private function finish():void {
+				dataShop.directoryService.getDirectory.addEventListener(ResultEvent.RESULT, handleNewDirectories);
+			}
+			
+			/**
+			 * Handles a change to the events.
+			 * Creates filters for the data.
+			 */
+			private function handleNewDirectories(event:Event):void {
+				// get the events from the database call
+				var directories:ArrayCollection = new ArrayCollection(dataShop.directoryService.getDirectory.lastResult);
+				
+				// store the events
+				this.directories = directories;
+				
+				// create a collection containing all of the possible event filters (by host)
+				categories = new ArrayCollection();
+				categories.addItem("All");
+				for each(var directory:Directory in directories) {
+					// see if the collection already contains the host
+					var categoryName:String = directory.category;
+					if(!categories.contains(categoryName)) {
+						// it doesn't, so add it
+						categories.addItem(categoryName);
+					}
+				}
+				categoriesList.selectedItem = "All";
+				
+				if(directories) {
+					// assign a filter function
+					directories.filterFunction = categoryFilterFunction;
+					
+					// refresh the data so that the filter function takes effect
+					directories.refresh();
+				}
+			}
+			
+			/**
+			 * The filter for the directory list.
+			 * Returns true if the passed directory item falls within a category.
+			 * Returns false otherwise.
+			 */
+			private function categoryFilterFunction(data:Directory):Boolean {
+				var willFilter:Boolean = false;
+				if(categoriesList.selectedItem == "All" || data.category == categoriesList.selectedItem) {
+					willFilter = true;
+				}
+				
+				return willFilter;
+			}
+			
+			/**
+			 * Calls the function that brings the user home.
+			 */
+			private function goHome():void {
+				try {
+					homeFunction();
+				} catch(e:Error) {
+					trace("No home function defined...");
+				}
+			}
+		]]>
+	</fx:Script>
+	
+	<s:layout>
+		<s:VerticalLayout gap="15" verticalAlign="top" horizontalAlign="left" 
+						  paddingLeft="100" paddingTop="20" paddingRight="100" paddingBottom="100" />
+	</s:layout>
+	
+	<s:Label text="Directory" fontSize="76" />
+	
+	<s:List id="categoriesList" width="100%" dataProvider="{categories}" itemRenderer="org.ten.components.FilterItemRenderer" 
+			selectionColor="0x111111" change="directories.refresh()">
+		<s:layout>
+			<s:HorizontalLayout gap="70" />
+		</s:layout>
+	</s:List>
+	
+	<mx:Spacer height="15" />
+	
+	<s:List id="eventsList" width="100%" height="100%" dataProvider="{directories}" 
+			itemRenderer="org.ten.components.DirectoryItemRenderer" selectionColor="0x222222" interactionMode="touch">
+		<s:layout>
+			<s:VerticalLayout gap="30" />
+		</s:layout>
+	</s:List>
+	
+	<components:HomeButton click="goHome()" />
+</s:NavigatorContent>

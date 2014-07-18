@@ -1,0 +1,269 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:NavigatorContent xmlns:fx="http://ns.adobe.com/mxml/2009" 
+					xmlns:s="library://ns.adobe.com/flex/spark" 
+					xmlns:mx="library://ns.adobe.com/flex/mx"
+					xmlns:components="org.ten.components.*"
+					width="1570" height="1080" creationComplete="init()">
+	
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import mx.containers.VBox;
+			import mx.core.DragSource;
+			import mx.managers.DragManager;
+			import mx.rpc.events.ResultEvent;
+			
+			import org.ten.DataShop;
+			
+			import spark.components.VGroup;
+			
+			/**
+			 * The function to be called to bring the user back home.
+			 */
+			public var homeFunction:Function;[Bindable]
+			
+			/**
+			 * The app's data shop.
+			 */
+			private var dataShop:DataShop = DataShop.instance;
+			
+			[Embed(source='assets/images/mail.png')]
+			/**
+			 * The image we use to represent dragging a slide to be mailed.
+			 */
+			public var mailIcon:Class;
+			
+			private const SEARCH_BOX_DISPLAY:String = "Enter a room # here";	
+			private var currentFloors:Array = new Array();
+			private var allRooms:Array = new Array();
+			private var dbRooms:Array = new Array();
+			private var xOffset:Number = 0, yOffset:Number = 0;
+			private var roomRegex:RegExp = /([0-9]*),([0-9]*),/gis;	// regex to turn a,b,c,d into a,b;c,d
+			
+			/**
+			 * Initialize data and visual display
+			 */
+			protected function init():void {
+				buildingFloors.visible = false;
+				
+				// Replace this by database query
+				include "../../Rooms.as";
+				
+				var j:Number = 0;
+				var i:Object;
+				var arrPoints:Array = new Array();
+				for (var key:Object in dbRooms) {
+					i = key;
+					arrPoints = new Array();
+					
+					if(dbRooms[i]) {
+						dbRooms[i] = dbRooms[i].replace(this.roomRegex, "$1,$2;");
+						var pairsOfPoints:Array = dbRooms[i].split(";");
+						for(j = 0; j < pairsOfPoints.length; j++) {
+							var pair:Array = pairsOfPoints[j].split(",");
+							var a:Number = currentFloors.length - buildingFloorsAccordion.selectedIndex;
+							arrPoints.push( new Point(parseInt(pair[0]), parseInt(pair[1])) );
+						}
+					}
+					
+					allRooms[i] = arrPoints;
+				}
+				
+			}
+			
+			/**
+			 * Move the campus map and show list of floors in given building
+			 */
+			protected function moveMap(whichBuilding:String):void
+			{
+				// Move the map
+				campusMapMove.end();
+				campusMapMove.duration = 800;
+				campusMapMove.play();
+				
+				// .. and fade in the list of floors in that building
+				buildingFloors.visible = true;
+				buildingFloors.title = whichBuilding + " Building";
+				fadeIn.play();
+				
+				// setup view
+				dataShop.buildingService.listMcConnellFloors.addEventListener(ResultEvent.RESULT, finishMoveMap);
+				dataShop.buildingService.listMcConnellFloors();
+			}
+			
+			/**
+			 * Handles a result from the listing of the floors.
+			 */
+			private function finishMoveMap(event:ResultEvent):void {
+				//var listOfFloors:String = dataShop.buildingService.listMcConnellFloors();
+				var listOfFloors:String = event.result as String;
+				listOfFloors = listOfFloors.substr(0, listOfFloors.length - 1);
+				var allFloors:Array = listOfFloors.split(",");
+				
+				buildingFloorsAccordion.removeAllChildren();
+				// add all the floors in this building to the accordion
+				currentFloors = new Array();
+				currentFloors.length = allFloors.length;
+				for(var i:int = 0; i < allFloors.length; i++) {
+					// Create the new container
+					var vbox:VBox = new VBox();
+					vbox.label = allFloors[i];
+					vbox.percentWidth = vbox.percentHeight = 100;
+					
+					// Create an image that will go in the container
+					var image:Image = new Image();
+					//image.source = FLOORPLAN_DIRECTORY + whichBuilding + "-" + allFloors[i] + ".jpg"; //// dbGetFloorplan(whichBuilding, i);
+					var floorExtension:String;
+					if(i == 0) {
+						floorExtension = "Basement";
+					} else if(i == 1) {
+						floorExtension = "Ground";
+					} else {
+						floorExtension = (i - 1).toString();
+					}
+					image.source = "http://ten.mcgilleus.ca/tenconnect/maps/McConnell-" + floorExtension + ".jpg";
+					image.percentHeight = image.percentWidth = 100;
+					vbox.addChild(image);
+					
+					currentFloors[i] = image;
+					// Add the container containing the image in the accordion
+					buildingFloorsAccordion.addChild(vbox);
+				}
+				buildingFloorsAccordion.selectedIndex = 1;	
+			}
+			
+			/**
+			 * Draws a polygon on the map; given array of Point objects
+			 */
+			protected function drawPolygon(myPoints:Array):Sprite
+			{
+				var polygon:Sprite = new Sprite();
+				
+				xOffset = -15;  // x-15, y-35
+				yOffset = buildingFloorsAccordion.selectedIndex*28 - buildingFloorsAccordion.selectedIndex*buildingFloorsAccordion.selectedIndex*0.5;
+				
+				polygon.graphics.beginFill(0x999999);
+				polygon.graphics.moveTo(myPoints[0].x + xOffset, myPoints[0].y + yOffset);
+				for(var i:Number = 1; i < myPoints.length; i++)
+					polygon.graphics.lineTo(myPoints[i].x + xOffset, myPoints[i].y + yOffset);
+				
+				polygon.graphics.lineTo(myPoints[0].x + xOffset, myPoints[0].y + yOffset);
+				polygon.graphics.endFill();
+				
+				return polygon;
+			}
+			
+			/** Function called when user types in search box and presses 'Enter' **/
+			protected function searchRoom():void
+			{
+				// Get coordinates of desired room from pre-loaded array of coordinates
+				var i:Number;
+				
+				if(allRooms[searchBox.text])
+				{
+					var myCoordinates:Array = allRooms[searchBox.text];
+					//buildingFloorsAccordion.selectedIndex = currentFloors.length - parseInt( searchBox.text.charAt(0) ) - 1;
+					buildingFloorsAccordion.selectedIndex = parseInt( searchBox.text.charAt(0) ) + 1;
+					
+					clearMap();					
+					overlayHolder.addChild( drawPolygon(myCoordinates) );
+				}
+			}
+			
+			/** Adjust color of search box depending on what it contains **/
+			protected function searchBoxClick():void
+			{
+				// Clear display and let user type a room number
+				if(searchBox.text == SEARCH_BOX_DISPLAY)
+				{
+					searchBox.text = "";
+					searchBox.setStyle("color", "#000000");
+				}
+			}
+			
+			/** Function called if the search box loses focus **/
+			protected function searchBoxLoseFocus():void
+			{
+				// If user clicks somewhere else but the field is empty, put back the display
+				if(searchBox.text == "")
+				{
+					searchBox.text = SEARCH_BOX_DISPLAY;
+					searchBox.setStyle("color", "#CCCCCC");
+				}
+			}
+			
+			/** Draw any polygons drawn on maps **/
+			protected function clearMap():void
+			{
+				while (overlayHolder.numChildren > 0)
+					overlayHolder.removeChildAt(0);
+			}
+			
+			/**
+			* Starts the drag and drop action on a Slide object
+			*/
+			private function doDrag(event:MouseEvent):void {
+				// get the slide image that we started to drag from
+				var targetImage:Image = event.currentTarget as Image;	
+				
+				// create a drag indicator image
+				var dragImage:Image = new Image();
+				dragImage.source = mailIcon;
+				dragImage.width = 150;
+				dragImage.smoothBitmapContent = true;
+				
+				// create a drag source to hold the data being sent
+				var dragSource:DragSource = new DragSource();
+				dragSource.addData(targetImage, 'data');
+				
+				// start the drag
+				DragManager.doDrag(targetImage, dragSource, event, dragImage, event.localX - 75, event.localY - 75, 1);
+			}
+			
+			/**
+			 * Calls the function that brings the user home.
+			 */
+			private function goHome():void {
+				try {
+					homeFunction();
+				} catch(e:Error) {
+					trace("No home function defined...");
+				}
+			}
+		]]>
+	</fx:Script>
+	
+	<fx:Declarations>
+		<mx:Parallel id="campusMapMove" duration="800">
+			<mx:Move id="engBldgMove" xTo="850" target="{campusMap}" />
+		</mx:Parallel>
+		<mx:Fade id="fadeOut" duration="1000" alphaFrom="1.0" alphaTo="0.0"/>
+		<mx:Fade id="fadeIn" target="{buildingFloors}" duration="1000" alphaFrom="0.0" alphaTo="1.0"/>
+	</fx:Declarations>
+	
+	<s:Panel id="campusMap" title="McGill Engineering Complex" x="14" y="8" width="702" height="757" fontSize="15" color="0x000000">
+		<mx:Image id="maps" x="28" y="15" width="655" height="694" source="assets/images/maps/campus.jpg" scaleContent="false" autoLoad="true" /> <!--themeColor="#67899E"-->
+		
+		<!--<s:Button label="Macdonald-Harr." x="302" y="590" width="101" height="80" color="#73A7BC" fontSize="9" click="moveMap(&quot;Macdonald-Harrington&quot;)"/>-->
+		<s:BorderContainer x="302" y="590" width="101" height="80" alpha="0.01" color="#73A7BC" fontSize="9" click="moveMap(&quot;Macdonald-Harrington&quot;)"/> <!-- Macdonald-Harrington -->
+		<s:BorderContainer x="283" y="487" width="100" height="105" alpha="0.01" color="#40AF6B" fontSize="10" click="moveMap(&quot;Macdonald&quot;)"/> <!-- label="Macdonald" -->
+		<s:BorderContainer x="382" y="464" width="81" height="114" alpha="0.01" color="#DD7E2A" fontSize="10" click="moveMap(&quot;McConnell&quot;)"/> <!-- label="McConnell" -->
+		<s:BorderContainer x="295" y="129"  width="68" height="99" alpha="0.01" color="#C73C66" fontSize="10" click="moveMap(&quot;Wong&quot;)"/> <!-- label="Wong" -->
+		<s:BorderContainer x="391" y="26" width="62" height="88" alpha="0.01" color="#3DAAC7" fontSize="10"  click="moveMap(&quot;Trottier&quot;)"/> <!-- label="Trottier" -->
+		<s:BorderContainer x="353" y="656" width="100" height="31" alpha="0.01" color="#0F9594" fontSize="10" click="moveMap(&quot;Frank-Dawson-Adams&quot;)"/> <!-- label="FDA" -->
+		<s:BorderContainer x="417" y="581" width="46" height="118" alpha="0.01" color="#0F9594" fontSize="10" click="moveMap(&quot;Frank-Dawson-Adams&quot;)"/> <!-- label="FDA" -->
+	</s:Panel>
+	
+	<s:Panel x="14" y="8" width="815" height="757" title="[Title Here]" fontSize="15" enabled="true" id="buildingFloors" color="0x000000">
+		<mx:Accordion id="buildingFloorsAccordion" x="12.7" y="13.35" width="791" height="697" borderStyle="solid" textFieldClass="mx.core.UIFTETextField" /> <!--borderThickness="3"-->
+		<s:TextInput id="searchBox" x="645" y="-29" width="160" text="{SEARCH_BOX_DISPLAY}" color="#CCCCCC" fontSize="11" 
+					 focusOut="searchBoxLoseFocus()" click="searchBoxClick()" enter="searchRoom()" enabled="true" />
+		<mx:UIComponent id="overlayHolder" x="28" y="15" width="655" height="694" />
+		<s:Button x="507" y="-32" label="Clear map" fontSize="9" click="clearMap()" color="0x000000"/>
+	</s:Panel>
+	
+	<components:HomeButton click="goHome()" />
+</s:NavigatorContent>

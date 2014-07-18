@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:NavigatorContent xmlns:fx="http://ns.adobe.com/mxml/2009" 
+					xmlns:s="library://ns.adobe.com/flex/spark" 
+					xmlns:components="org.ten.components.*" 
+					xmlns:mx="library://ns.adobe.com/flex/mx" 
+					width="1570" height="1080">
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import mx.collections.ArrayCollection;
+			import mx.controls.Alert;
+			import mx.controls.Label;
+			import mx.core.DragSource;
+			import mx.events.DragEvent;
+			import mx.managers.DragManager;
+			
+			import org.ten.DataShop;
+			import org.ten.components.SlideItemRenderer;
+			import org.ten.vo.Directory;
+			import org.ten.vo.Slide;
+			
+			import spark.events.IndexChangeEvent;
+			
+			[Bindable]
+			/**
+			 * The app's data shop.
+			 */
+			private var dataShop:DataShop = DataShop.instance;
+			
+			/**
+			 * The function to be called to bring the user back home.
+			 */
+			public var homeFunction:Function;
+			
+			[Embed(source='assets/images/mail.png')]
+			/**
+			 * The image we use to represent dragging a slide to be mailed.
+			 */
+			public var mailIcon:Class;
+			
+			[Bindable]
+			[Embed(source='assets/images/topBorder.png')]
+			/**
+			 * The image used as an elegant top border
+			 */
+			public var topBorderIcon:Class;
+			
+			[Bindable]
+			[Embed(source='assets/images/bottomBorder.png')]
+			/**
+			 * The image used as an elegant bottom border
+			 */
+			public var bottomBorderIcon:Class;
+			
+			[Bindable]public var libName:String;
+			[Bindable]public var libSched:String;
+			[Bindable]public var dateRange:String;
+			
+			/**
+			 * Calls the function that brings the user home.
+			 */
+			private function goHome():void {
+				try {
+					homeFunction();
+				} catch(e:Error) {
+					trace("No home function defined...");
+				}
+			}
+			
+			
+			[Bindable]
+			/**
+			 * An array containing the names of the most applicable libraries for Engineers
+			 **/
+			public var libraries:ArrayCollection = new ArrayCollection([
+				{label:"Blackader-Lauterman (Architecture/Art)", data:1},
+				{label:"Edward Rosenthall Mathematics and Statistics", data:2},
+				{label:"Electronic Data Resources Service", data:3},
+				{label:"Government Information Service", data:4},
+				{label:"Howard Ross Library of Management", data:5},
+				{label:"Humanities and Social Sciences Library", data:6},
+				{label:"Life Science Library", data:7},
+				{label:"Marvin Duchow Music Library", data:8},
+				{label:"Nahum Gelber Law Library", data:9},
+				{label:"Osler (History of Medicine)", data:10},
+				{label:"Rare Books and Special Collections", data:11},
+				{label:"Schulich Library of Science and Engineering", data:12}
+			]);	
+			
+			/**
+			 * Displays the schedule of the library selected from the list
+			 * */
+			public function handleLibrarySelected(event:IndexChangeEvent):void{
+				
+				switch(libList.selectedIndex){
+					case 0:
+						libName = "Blackader-Lauterman";
+						dateRange = "January 10 - April 20, 2011";
+						libSched = "Monday - Friday\n\tOpening Hours\t8:00 - 00:45\n\tServices\t\t\t11:00 - 17:00\n\nSaturday - Sunday\n\tOpening Hours\t10:00 - 00:45\n\tServices\t\t\t10:15 - 17:45";
+						break;
+					case 1:
+						libName = "Mathematics and Statistics";
+						dateRange = "January 3 - April 29, 2011";
+						libSched = "Monday - Friday\n\tOpening Hours\t10:00 - 16:00\n\tServices\t\t\t10:15 - 15:45\n\nSaturday - Sunday\n\tClosed";
+						break;
+					case 2:
+						libName = libList.selectedItem.label;
+						dateRange = "January 10 - April 20, 2011"
+						libSched = "Monday - Friday\n\tOpening Hours\t8:00 - 00:45\n\tServices\t\t\t11:00 - 18:00\n\nSaturday - Sunday\n\tOpening Hours\t10:00 - 00:45\n\tServices\t\t\t10:15 - 17:45";
+						break;
+					case 3:
+						libName = libList.selectedItem.label;
+						dateRange = "January 10 - April 20, 2011";
+						libSched = "Monday - Friday\n\tOpening Hours\t8:00 - 00:45\n\tServices\t\t\t11:00 - 17:00\n\nSaturday - Sunday\n\tOpening Hours\t10:00 - 00:45\n\tServices\t\t\t10:15 - 17:45";
+						break;
+					case 4:
+						libName = "Library of Management"
+						dateRange = "January 3 - April 28, 2011";
+						libSched = "Monday - Thursday\n\tOpening Hours\t9:00 - 21:00\n\tServices\t\t\t9:15 - 20:45\n\nFriday\n\tOpening Hours\t9:00 - 18:00\n\tServices\t\t\t9:15 - 17:45\n\nSaturday - Sunday\n\tOpening Hours\t10:00 - 18:00\n\tServices\t\t\t10:15 - 17:45";
+						break;
+					case 5:
+						libName = "Humanities and Social\nSciences Library";
+						dateRange = "February 25 - April 20, 2011";
+						libSched = "Monday - Friday\n\tOpening Hours\t8:00 - 22:00\n\tServices\t\t\t8:15 - 21:45\n\nSaturday - Sunday\n\tOpening Hours\t10:00 - 18:00\n\tServices\t\t\t10:15 - 17:45";
+						break;
+					case 6:
+						libName = libList.selectedItem.label;
+						dateRange = "January 3 - April 29, 2011";
+						libSched = "Monday - Thursday\n\tOpening Hours\t8:30 - 21:00\n\tServices\t\t\t8:45 - 20:45\n\nFriday\n\tOpening Hours\t8:30 - 19:00\n\tServices\t\t\t8:45 - 18:45\n\nSaturday - Sunday\n\tOpening Hours\t12:00 - 20:00\n\tServices\t\t\t12:15 - 19:45";
+						break;
+					case 7:
+						libName = "Music Library";
+						dateRange = "January 3 - April 28, 2011";
+						libSched = "Monday - Thursday\n\tOpening Hours\t8:00 - 23:00\n\tServices\t\t\t8:45 - 22:45\n\nFriday\n\tOpening Hours\t8:30 - 19:00\n\tServices\t\t\t8:45 - 18:45\n\nSaturday - Sunday\n\tOpening Hours\t11:00 - 19:00\n\tServices\t\t\t11:15 - 18:45";
+						break;
+					case 8:
+						libName = "Law Library";
+						dateRange = "March 7 - April 20, 2011";
+						libSched = "Monday - Thursday\n\tOpening Hours\t9:00 - 1:45\n\tServices\t\t\t9:00 - 21:45\n\nFriday\n\tOpening Hours\t9:00 - 1:45\n\tServices\t\t\t9:00 - 19:45\n\nSaturday - Sunday\n\tOpening Hours\t10:00 - 1:45\n\tServices\t\t\t10:00 - 17:45";
+						break;
+					case 9:
+						libName = libList.selectedItem.label;
+						dateRange = "January 3 - April 29, 2011";
+						libSched = "Monday - Friday\n\tOpening Hours\t9:00 - 17:00\n\tServices\t\t\t9:15 - 16:45\n\nSaturday - Sunday\n\tClosed";
+						break;
+					case 10:
+						libName = "Rare Books\nand Special Collections";
+						dateRange = "January 3 - April 29, 2011";
+						libSched = "Monday - Friday\n\tOpening Hours\t9:00 - 17:00\n\tServices\t\t\t9:15 - 16:45\n\nSaturday - Sunday\n\tClosed";
+						break;
+					case 11:
+						libName = "Schulich Library of\nScience and Engineering";
+						dateRange = "January 17 - April 20, 2011";
+						libSched = "Monday - Thursday\n\tOpening Hours\t8:30 - 2:45\n\tServices\t\t\t8:30 - 22:00\n\nFriday\n\tOpening Hours\t8:30 - 22:45\n\tServices\t\t\t8:30 - 19:00\n\nSaturday - Sunday\n\tOpening Hours\t12:00 - 23:45\n\tServices\t\t\t12:00 - 20:00";
+						break;
+				}
+				
+				topBorder.visible=true;
+				bottomBorder.visible=true;
+				libTitle.visible=true;
+				libRange.visible=true;
+				libHrs.visible=true;
+			}
+		]]>
+	</fx:Script>
+	
+	<s:layout>
+		<s:VerticalLayout gap="15" verticalAlign="top" horizontalAlign="left" 
+						  paddingLeft="100" paddingTop="20" paddingRight="100" paddingBottom="100" />
+	</s:layout>
+	
+	<s:Label text="Library Information" fontSize="76" />
+	
+	<s:Spacer height="30" />
+	
+	<s:Label text="Select a Library:" fontSize="38"/>
+	
+	<s:HGroup width="100%" height="100%" gap="100">
+		<s:List id="libList" width="46%" height="100%" 
+				dataProvider="{libraries}" 
+				change="handleLibrarySelected(event)"
+				borderColor="0x111111"
+				borderVisible="false"
+				selectionColor="0x1FB4EC"
+				rollOverColor="0x111111"
+				itemRenderer="org.ten.components.LibraryItemRenderer">
+			<s:layout>
+				<s:VerticalLayout />
+			</s:layout>
+		</s:List>
+		
+		<s:VGroup id="group2" height="100%" gap="30">
+			<s:Image id="topBorder" source="{topBorderIcon}" visible="false" />
+			<s:Label id="libTitle" text="{libName}" fontSize="44" visible="false" />
+			<s:Label id="libRange" text="{dateRange}" paddingLeft="35" visible="false" />
+			<s:Label id="libHrs" text="{libSched}" paddingLeft="35" visible="false" />
+			<s:Image id="bottomBorder" source="{bottomBorderIcon}" visible="false" />
+		</s:VGroup>
+	</s:HGroup>	
+	
+	
+	<components:HomeButton click="goHome()" />
+</s:NavigatorContent>
